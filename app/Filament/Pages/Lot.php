@@ -16,7 +16,7 @@ class Lot extends Page
 
     public array|Collection $users;
 
-    public int $selectedLotID;
+    public ?int $selectedLotID;
     public ?int $mijnLotID;
 
     public function __construct()
