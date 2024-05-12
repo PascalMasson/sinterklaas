@@ -121,6 +121,7 @@ class CadeauResource extends Resource
                     ->wrap()
                     ->label("Omschrijving"),
                 TextColumn::make('price')
+                    ->sortable()
                     ->money("EUR")
                     ->label("Prijs"),
                 TextColumn::make('location_type')
