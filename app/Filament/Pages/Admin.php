@@ -117,6 +117,7 @@ class Admin extends Page
         }
 
         DB::table('cadeaus')->truncate();
+        DB::table('media')->truncate();
 
         foreach ($tables['cadeaus'] as $old) {
             $new = new Cadeau();
