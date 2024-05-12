@@ -11,14 +11,16 @@
             @endforeach
         </x-filament::input.select>
     </x-filament::input.wrapper>
-    <div>
-        <x-filament::button tag="a"
-                          :href='\App\Filament\Resources\CadeauResource::getUrl(parameters: ["listId" => $lot->id])'>
-            Lijstje bekijken
-        </x-filament::button>
-        <x-filament::button tag="a"
-                          :href='\App\Filament\Resources\FopperResource::getUrl(parameters: ["targetId" => $lot->id])'>
-            Foppers bekijken
-        </x-filament::button>
-    </div>
+    @if($lot != null && $lot->id != null)
+        <div>
+            <x-filament::button tag="a"
+                                :href='\App\Filament\Resources\CadeauResource::getUrl(parameters: ["listId" => $lot->id])'>
+                Lijstje bekijken
+            </x-filament::button>
+            <x-filament::button tag="a"
+                                :href='\App\Filament\Resources\FopperResource::getUrl(parameters: ["targetId" => $lot->id])'>
+                Foppers bekijken
+            </x-filament::button>
+        </div>
+    @endif
 </x-filament-panels::page>

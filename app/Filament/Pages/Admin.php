@@ -48,7 +48,7 @@ class Admin extends Page
     }
 
     public function draw(){
-        $users = User::pluck("id")->toArray();
+        $users = User::whereNot("id", auth()->id())->pluck("id")->toArray();
         shuffle($users);
         for($i = 0; $i < count($users); $i++){
             $user = User::find($users[$i]);
