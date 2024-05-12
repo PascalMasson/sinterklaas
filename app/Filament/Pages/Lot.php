@@ -23,6 +23,8 @@ class Lot extends Page
     {
         $this->users = User::where("id", "!=" ,auth()->id())->get();
         $this->mijnLotID = auth()->user()->lot_id;
+        $this->selectedLotID = $this->mijnLotID;
+
     }
 
     public function updatedSelectedLotID(int $id)
