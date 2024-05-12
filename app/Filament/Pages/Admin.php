@@ -64,7 +64,8 @@ class Admin extends Page
 
     public function checkLootjes(){
         $lot_id_null_count = User::where("lot_id", null)->count();
-        $duplicate_lot_id_count = User::groupBy("lot_id")
+        $duplicate_lot_id_count = User::whereNot("lot_id", null)
+            ->groupBy("lot_id")
             ->havingRaw('COUNT(\'lot_id\') > 1')
             ->pluck("lot_id");
         if($lot_id_null_count === 0) {
