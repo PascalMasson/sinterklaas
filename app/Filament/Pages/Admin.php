@@ -3,10 +3,15 @@
 namespace App\Filament\Pages;
 
 use App\Enums\CadeauStatus;
+use App\Filament\Imports\CadeauImporter;
 use App\Models\Cadeau;
+use App\Models\Fopper;
 use App\Models\User;
+use Exception;
+use Filament\Actions\ImportAction;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Support\Facades\DB;
 
 class Admin extends Page
 {
@@ -14,6 +19,8 @@ class Admin extends Page
 
     protected static string $view = 'filament.pages.admin';
     protected static ?int $navigationSort = 100;
+
+    public $databaseJson;
 
     public static function shouldRegisterNavigation(): bool
     {
@@ -83,5 +90,68 @@ class Admin extends Page
                 ->success()
                 ->send();
         }
+    }
+
+    public function saveDatabaseJson()
+    {
+        $data = $this->validate([
+            'databaseJson' => 'required|file|mimes:json',
+        ]);
+
+        $filecontents = file_get_contents($data['databaseJson']->getRealPath());
+        $all_data = json_decode($filecontents, null, 512, JSON_THROW_ON_ERROR);
+        //filter all data where type is table
+        $tablesdata = array_filter($all_data, fn ($item): bool => $item->type == 'table' && $item->name != 'gebruikers');
+        $tables = [];
+        foreach ($tablesdata as $tabledata) {
+            $tables[$tabledata->name] = $tabledata->data;
+        }
+
+        DB::table('foppers')->truncate();
+        foreach ($tables['foppers'] as $old) {
+            $new = new Fopper();
+            $new->inhoud = $old->description;
+            $new->created_by_user_id = $old->fopperVan;
+            $new->created_for_user_id = $old->fopperVoor;
+            $new->save();
+        }
+
+        DB::table('cadeaus')->truncate();
+
+        foreach ($tables['cadeaus'] as $old) {
+            $new = new Cadeau();
+            $new->title = $old->title;
+
+            $new->status = match ($old->status) {
+                'VRIJ' => CadeauStatus::AVAILABLE,
+                'GERESERVEERD' => CadeauStatus::RESERVED,
+                'GEKOCHT' => CadeauStatus::PURCHASED,
+                default => throw new Exception("Unknown status: " . $old->Status)
+            };
+
+            $new->price = $old->prijs ?? 0;
+
+            if(filter_var($old->location, FILTER_VALIDATE_URL)) {
+                $new->location_url = $old->location;
+                $new->location_type = 'website';
+            } else{
+                $new->location_other = $old->location;
+                $new->location_type = 'overig';
+            }
+
+            $new->created_by_user_id = $old->createdBy;
+            $new->list_user_id = $old->listId;
+            if ($old->status != 'VRIJ') {
+                $new->reserved_by_user_id = $old->reservedBy;
+            }
+            $new->save();
+        }
+
+        Notification::make()
+            ->title("Database is succesvol geimporteerd")
+            ->success()
+            ->send();
+
+        $this->databaseJson = null;
     }
 }
