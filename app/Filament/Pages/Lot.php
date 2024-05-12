@@ -8,7 +8,7 @@ use Illuminate\Support\Collection;
 
 class Lot extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static ?string $navigationIcon = 'heroicon-o-ticket';
 
     protected static string $view = 'filament.pages.lot';
 
