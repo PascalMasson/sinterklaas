@@ -126,11 +126,18 @@ class CadeauResource extends Resource
                 TextColumn::make('location_type')
                     ->label("Locatie")
                     ->formatStateUsing(function (string $state, Cadeau $record) {
-                        return match ($state) {
-                            "website" => parse_url($record->location_url)['host'],
-                            "overig" => $record->location_other,
-                            default => "Onbekend"
-                        };
+                        switch ($state) {
+                            case "website":
+                                $url = parse_url($record->location_url);
+                                if(isset($url['host'])){
+                                    return $url['host'];
+                                }
+                                else return $record->location_url;
+                            case "overig":
+                                return $record->location_other;
+                            default:
+                                return "Onbekend";
+                        }
                     })
                     ->url(fn(Cadeau $record) => $record->location_url)
                     ->openUrlInNewTab(),
