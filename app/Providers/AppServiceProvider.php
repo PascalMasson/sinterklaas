@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Filament\Http\Responses\Auth\LoginResponse;
 use Filament\Navigation\NavigationManager;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -30,5 +32,9 @@ class AppServiceProvider extends ServiceProvider
             NavigationManager::class,
             \App\Navigation\NavigationManager::class
         );
+
+        if (Config::get('app.env') === 'production') {
+            URL::forceScheme('https');
+        }
     }
 }
