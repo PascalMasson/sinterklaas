@@ -1,0 +1,6 @@
+#!/usr/bin/execlineb -P
+with-contenv
+foreground {
+    echo "Starting Horizon..."
+}
+/usr/local/bin/php /var/www/html/artisan horizon

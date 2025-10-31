@@ -23,7 +23,8 @@ class MijnReserveringen extends Page implements HasTable
     {
         session()->forget("listId");
         return CadeauResource::table($table)->query(function(){
-            return Cadeau::whereIn("reserved_by_user_id",[auth()->user()->id, auth()->user()->partnerId]);
+            return Cadeau::whereIn("reserved_by_user_id",[auth()->user()->id, auth()->user()->partnerId])
+                ->visibleFor(auth()->user());
         })
             ->defaultGroup(Group::make("list_user_id")->getTitleFromRecordUsing(fn(Cadeau $cadeau) => $cadeau->listUser->name)->label("Lijstje van"));
     }

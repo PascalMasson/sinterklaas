@@ -3,6 +3,7 @@
 namespace App\Filament\Imports;
 
 use App\Enums\CadeauStatus;
+use App\Enums\CadeauVisibility;
 use App\Models\Cadeau;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
@@ -37,6 +38,15 @@ class CadeauImporter extends Importer
                         $record->location_other = $state;
                         $record->location_type = "overig";
                     }
+                }),
+            ImportColumn::make('visibility')
+                ->fillRecordUsing(function (Cadeau $record, string $state) {
+                    $record->visibility = match (strtoupper($state)) {
+                        'PUBLIC' => CadeauVisibility::PUBLIC,
+                        'HIDDEN' => CadeauVisibility::HIDDEN,
+                        'PRIVATE' => CadeauVisibility::PRIVATE,
+                        default => CadeauVisibility::PUBLIC,
+                    };
                 }),
             ImportColumn::make("created_by_user_id"),
             ImportColumn::make("list_user_id"),

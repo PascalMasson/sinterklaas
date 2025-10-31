@@ -29,7 +29,7 @@ class ListCadeaus extends ListRecords
 
         return [
             CreateAction::make()
-                ->visible(fn () => $this->listId === auth()->id()),
+                ->visible(fn () => auth()->check()),
         ];
     }
 }

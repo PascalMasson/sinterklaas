@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Enums\CadeauStatus;
+use App\Enums\CadeauVisibility;
 use App\Filament\Clusters\Lijstjes;
 use App\Filament\Resources\CadeauResource\Pages;
 use App\Models\Cadeau;
@@ -76,6 +77,18 @@ class CadeauResource extends Resource
                     ->required()
                     ->numeric(),
 
+                Select::make('visibility')
+                    ->label('Zichtbaarheid')
+                    ->options([
+                        CadeauVisibility::PUBLIC->value => 'Publiek',
+                        CadeauVisibility::HIDDEN->value => 'Verborgen',
+                        CadeauVisibility::PRIVATE->value => 'Geheim',
+                    ])
+                    ->default(CadeauVisibility::HIDDEN->value)
+                    ->hidden(fn () => static::isOwnList())
+                    ->dehydrated(fn () => ! static::isOwnList())
+                    ->required(),
+
                 Radio::make('location_type')
                     ->label("Locatie")
                     ->options([
@@ -112,6 +125,16 @@ class CadeauResource extends Resource
     {
         return $table
             ->columns(array(
+                TextColumn::make('visibility')
+                    ->label('Zichtbaarheid')
+                    ->badge()
+                    ->color(fn($state) => match (($state instanceof CadeauVisibility) ? $state : CadeauVisibility::from($state)) {
+                        CadeauVisibility::PUBLIC => 'success',
+                        CadeauVisibility::HIDDEN => 'warning',
+                        CadeauVisibility::PRIVATE => 'gray',
+                    })
+                    ->formatStateUsing(fn($state) => (($state instanceof CadeauVisibility) ? $state : CadeauVisibility::from($state))->toHumanReadable())
+                    ->sortable(),
                 TextColumn::make('title')
                     ->label("Titel")
                     ->searchable()
@@ -204,7 +227,9 @@ class CadeauResource extends Resource
             ])
             ->filtersLayout(FiltersLayout::AboveContent)
             ->actions([
-                EditAction::make()->label("")->hidden(fn() => static::getListId() !== auth()->id()),
+                EditAction::make()
+                    ->label("")
+                    ->visible(fn (Cadeau $record) => static::isOwnList() || (auth()->check() && (int) $record->created_by_user_id === (int) auth()->id())),
                 DeleteAction::make()->label("")->hidden(fn() => static::getListId() !== auth()->id()),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),
@@ -239,7 +264,8 @@ class CadeauResource extends Resource
     public static function getEloquentQuery(): Builder
     {;
         return parent::getEloquentQuery()
-            ->where("list_user_id", static::getListId());
+            ->where("list_user_id", static::getListId())
+            ->visibleFor(auth()->user());
     }
 
     public static function getUrl(string $name = 'index', array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?Model $tenant = null): string
@@ -289,6 +315,26 @@ class CadeauResource extends Resource
     public static function getTitleCasePluralModelLabel(): string
     {
         return "Lijstje van " . static::getListName();
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        if (! auth()->check()) {
+            return false;
+        }
+
+        return static::isOwnList() || (int) $record->created_by_user_id === (int) auth()->id();
+    }
+
+    protected static function isOwnList(): bool
+    {
+        if (! auth()->check()) {
+            return false;
+        }
+
+        $listId = static::getListId();
+
+        return $listId !== null && (int) $listId === (int) auth()->id();
     }
 
 }

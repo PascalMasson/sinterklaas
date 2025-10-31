@@ -1,0 +1,3 @@
+#!/bin/sh
+/usr/local/bin/php /var/www/html/artisan horizon:terminate
+echo "Horizon stopped."
