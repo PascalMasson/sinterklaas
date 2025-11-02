@@ -1,15 +1,15 @@
+import forms from '@tailwindcss/forms'
+import typography from '@tailwindcss/typography'
+
 /** @type {import('tailwindcss').Config} */
-import preset from "./vendor/filament/support/tailwind.config.preset.js"
 export default {
-    presets: [preset],
     content: [
         './app/Filament/**/*.php',
         './resources/views/**/*.blade.php',
         './vendor/filament/**/*.blade.php',
     ],
     theme: {
-    extend: {},
-  },
-  plugins: [],
+        extend: {},
+    },
+    plugins: [forms, typography],
 }
-

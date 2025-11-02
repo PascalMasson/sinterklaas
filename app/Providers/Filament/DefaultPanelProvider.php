@@ -20,9 +20,10 @@ use Filament\Navigation\NavigationItem;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
-use Filament\Support\Enums\MaxWidth;
+use Filament\Support\Enums\Width;
 use Filament\Support\Facades\FilamentAsset;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -94,8 +95,10 @@ class DefaultPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->topNavigation()
-            ->viteTheme("resources/css/filament/default/theme.css")
-            ->maxContentWidth(MaxWidth::Full);
+            ->maxContentWidth(Width::Full)
+            ->assets([
+                Css::make('cadeau-status', asset('css/cadeau-status.css')),
+            ]);
     }
 
     public function boot()

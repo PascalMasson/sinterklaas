@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Filament\Resources\CadeauResource;
 use App\Models\Cadeau;
+use BackedEnum;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Pages\Page;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -15,9 +16,9 @@ class MijnReserveringen extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static ?string $navigationIcon = 'heroicon-o-gift-top';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-gift-top';
 
-    protected static string $view = 'filament.pages.mijn-reserveringen';
+    protected string $view = 'filament.pages.mijn-reserveringen';
 
     public function table(Table $table): Table
     {

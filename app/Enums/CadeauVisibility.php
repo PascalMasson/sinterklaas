@@ -11,9 +11,9 @@ enum CadeauVisibility: string
     public function toHumanReadable(): string
     {
         return match ($this) {
-            self::PUBLIC => 'Publiek',
-            self::HIDDEN => 'Verborgen',
-            self::PRIVATE => 'Geheim',
+            self::PUBLIC => 'Public',
+            self::HIDDEN => 'Hidden',
+            self::PRIVATE => 'Private',
         };
     }
 }

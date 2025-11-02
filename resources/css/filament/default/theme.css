@@ -1,4 +1,48 @@
-@import '/vendor/filament/filament/resources/css/theme.css';
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
 
+@source '../../../../app/Filament';
+@source '../../../../resources/views/filament';
 
-@config 'tailwind.config.js';
+@layer utilities {
+    .cadeau-status-available {
+        background-color: rgb(134 239 172 / 0.6);
+    }
+
+    .dark .cadeau-status-available {
+        background-color: rgb(34 197 94 / 0.35);
+    }
+
+    .cadeau-status-reserved {
+        background-color: rgb(253 224 71 / 0.6);
+    }
+
+    .dark .cadeau-status-reserved {
+        background-color: rgb(202 138 4 / 0.35);
+    }
+
+    .cadeau-status-purchased {
+        background-color: rgb(248 113 113 / 0.6);
+    }
+
+    .dark .cadeau-status-purchased {
+        background-color: rgb(220 38 38 / 0.35);
+    }
+
+    .cadeau-status-available:hover,
+    .cadeau-status-available:hover td,
+    .cadeau-status-available:hover th {
+        background-color: rgb(134 239 172 / 0.8);
+    }
+
+    .cadeau-status-reserved:hover,
+    .cadeau-status-reserved:hover td,
+    .cadeau-status-reserved:hover th {
+        background-color: rgb(253 224 71 / 0.8);
+    }
+
+    .cadeau-status-purchased:hover,
+    .cadeau-status-purchased:hover td,
+    .cadeau-status-purchased:hover th {
+        background-color: rgb(248 113 113 / 0.8);
+    }
+}

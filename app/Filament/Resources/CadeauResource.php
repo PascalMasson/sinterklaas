@@ -4,11 +4,11 @@ namespace App\Filament\Resources;
 
 use App\Enums\CadeauStatus;
 use App\Enums\CadeauVisibility;
+use BackedEnum;
 use App\Filament\Clusters\Lijstjes;
 use App\Filament\Resources\CadeauResource\Pages;
 use App\Models\Cadeau;
 use App\Models\User;
-use Cheesegrits\FilamentGoogleMaps\Fields\Geocomplete;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
@@ -16,19 +16,19 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Navigation\NavigationItem;
 use Filament\Resources\Resource;
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Actions\BulkActionGroup;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\DeleteBulkAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\ForceDeleteAction;
-use Filament\Tables\Actions\ForceDeleteBulkAction;
-use Filament\Tables\Actions\RestoreAction;
-use Filament\Tables\Actions\RestoreBulkAction;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\SelectColumn;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -49,15 +49,15 @@ class CadeauResource extends Resource
 
     protected static ?string $slug = 'cadeaus/{listId}';
 
-    protected static ?string $navigationIcon = 'heroicon-o-gift';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-gift';
     protected static bool $shouldRegisterNavigation = true;
 
     protected static $cachedName = null;
 
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->schema([
                 TextInput::make('title')
                     ->label("Titel")
@@ -80,9 +80,9 @@ class CadeauResource extends Resource
                 Select::make('visibility')
                     ->label('Zichtbaarheid')
                     ->options([
-                        CadeauVisibility::PUBLIC->value => 'Publiek',
-                        CadeauVisibility::HIDDEN->value => 'Verborgen',
-                        CadeauVisibility::PRIVATE->value => 'Geheim',
+                        CadeauVisibility::PUBLIC->value => 'Public',
+                        CadeauVisibility::HIDDEN->value => 'Hidden',
+                        CadeauVisibility::PRIVATE->value => 'Private',
                     ])
                     ->default(CadeauVisibility::HIDDEN->value)
                     ->hidden(fn () => static::isOwnList())
@@ -117,7 +117,7 @@ class CadeauResource extends Resource
 
                 Hidden::make("list_user_id")
                     ->default(static::getListId()),
-
+            
             ])->inlineLabel()->columns(1);
     }
 
@@ -235,15 +235,16 @@ class CadeauResource extends Resource
                 ForceDeleteAction::make(),
             ])
             ->paginated([25, 50, 100])
-            ->recordClasses(function (Cadeau $record) {
-                if(static::getListId() != auth()->id()) {
-                    return match ($record->status) {
-                        CadeauStatus::AVAILABLE => 'bg-green-300 dark:bg-green-800 hover:bg-green-300 hover:dark:bg-green-800',
-                        CadeauStatus::RESERVED => 'bg-yellow-300 dark:bg-yellow-800 hover:bg-yellow-300 hover:dark:bg-yellow-800',
-                        CadeauStatus::PURCHASED => 'bg-red-300 dark:bg-red-800 hover:bg-red-300 hover:dark:bg-red-800',
-                    };
+            ->recordClasses(function (Cadeau $record): array {
+                if (static::getListId() === auth()->id()) {
+                    return [];
                 }
-                return "";
+
+                return match ($record->status) {
+                    CadeauStatus::AVAILABLE => ['cadeau-status-available'],
+                    CadeauStatus::RESERVED => ['cadeau-status-reserved'],
+                    CadeauStatus::PURCHASED => ['cadeau-status-purchased'],
+                };
             });
 //            ->defaultGroup(
 //                Group::make("status")
@@ -268,12 +269,12 @@ class CadeauResource extends Resource
             ->visibleFor(auth()->user());
     }
 
-    public static function getUrl(string $name = 'index', array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?Model $tenant = null): string
+    public static function getUrl(?string $name = null, array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?Model $tenant = null, bool $shouldGuessMissingParameters = false): string
     {
         if(!array_key_exists("listId", $parameters)){
             $parameters["listId"] = static::getListId();
         }
-        return parent::getUrl($name, $parameters, $isAbsolute, $panel, $tenant); // TODO: Change the autogenerated stub
+        return parent::getUrl($name, $parameters, $isAbsolute, $panel, $tenant, $shouldGuessMissingParameters);
     }
 
     public static function getListId(): ?int

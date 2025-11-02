@@ -3,14 +3,15 @@
 namespace App\Filament\Pages;
 
 use App\Models\User;
+use BackedEnum;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 
 class Lot extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-ticket';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-ticket';
 
-    protected static string $view = 'filament.pages.lot';
+    protected string $view = 'filament.pages.lot';
 
     protected static ?string $title = "Mijn lootje";
 

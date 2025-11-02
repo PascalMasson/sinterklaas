@@ -4,23 +4,24 @@ namespace App\Filament\Pages\Auth;
 
 use App\Models\User;
 use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
+use Filament\Auth\Http\Responses\Contracts\LoginResponse;
+use Filament\Auth\Pages\Login as BaseAuth;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
-use Filament\Http\Responses\Auth\Contracts\LoginResponse;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Notifications\Notification;
-use Filament\Pages\Auth\Login as BaseAuth;
+use Filament\Schemas\Schema;
 use Illuminate\Validation\ValidationException;
 
 class Login extends BaseAuth
 {
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            $this->getNameFormComponent(),
-        ])
-            ->statePath("data");
+        return $schema
+            ->components([
+                $this->getNameFormComponent(),
+            ])
+            ->statePath('data');
     }
 
     public function getCredentialsFromFormData(array $data): array
@@ -33,7 +34,7 @@ class Login extends BaseAuth
     public function throwFailureValidationException(): never
     {
         throw ValidationException::withMessages([
-            "data.login" => __("filament-panels::pages/auth/login.nessages.failed")
+            'data.name' => __('filament-panels::auth/pages/login.messages.failed'),
         ]);
     }
 

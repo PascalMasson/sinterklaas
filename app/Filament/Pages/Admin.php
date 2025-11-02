@@ -8,6 +8,7 @@ use App\Models\Cadeau;
 use App\Models\Fopper;
 use App\Models\User;
 use Exception;
+use BackedEnum;
 use Filament\Actions\ImportAction;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -15,9 +16,9 @@ use Illuminate\Support\Facades\DB;
 
 class Admin extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-document-text';
 
-    protected static string $view = 'filament.pages.admin';
+    protected string $view = 'filament.pages.admin';
     protected static ?int $navigationSort = 100;
 
     public $databaseJson;
