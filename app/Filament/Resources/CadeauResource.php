@@ -79,11 +79,7 @@ class CadeauResource extends Resource
 
                 Select::make('visibility')
                     ->label('Zichtbaarheid')
-                    ->options([
-                        CadeauVisibility::PUBLIC->value => 'Public',
-                        CadeauVisibility::HIDDEN->value => 'Hidden',
-                        CadeauVisibility::PRIVATE->value => 'Private',
-                    ])
+                    ->options(CadeauVisibility::options())
                     ->default(CadeauVisibility::HIDDEN->value)
                     ->hidden(fn () => static::isOwnList())
                     ->dehydrated(fn () => ! static::isOwnList())
@@ -117,7 +113,7 @@ class CadeauResource extends Resource
 
                 Hidden::make("list_user_id")
                     ->default(static::getListId()),
-            
+
             ])->inlineLabel()->columns(1);
     }
 
@@ -128,6 +124,7 @@ class CadeauResource extends Resource
                 TextColumn::make('visibility')
                     ->label('Zichtbaarheid')
                     ->badge()
+                    ->hidden(fn () => static::isOwnList())
                     ->color(fn($state) => match (($state instanceof CadeauVisibility) ? $state : CadeauVisibility::from($state)) {
                         CadeauVisibility::PUBLIC => 'success',
                         CadeauVisibility::HIDDEN => 'warning',

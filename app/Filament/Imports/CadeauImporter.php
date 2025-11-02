@@ -41,12 +41,7 @@ class CadeauImporter extends Importer
                 }),
             ImportColumn::make('visibility')
                 ->fillRecordUsing(function (Cadeau $record, string $state) {
-                    $record->visibility = match (strtoupper($state)) {
-                        'PUBLIC' => CadeauVisibility::PUBLIC,
-                        'HIDDEN' => CadeauVisibility::HIDDEN,
-                        'PRIVATE' => CadeauVisibility::PRIVATE,
-                        default => CadeauVisibility::PUBLIC,
-                    };
+                    $record->visibility = CadeauVisibility::fromLocalized($state);
                 }),
             ImportColumn::make("created_by_user_id"),
             ImportColumn::make("list_user_id"),
