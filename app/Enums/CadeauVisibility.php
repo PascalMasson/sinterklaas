@@ -19,17 +19,29 @@ enum CadeauVisibility: string
     /**
      * Returns the Dutch label for the visibility state.
      */
-    public function toHumanReadable(): string
+    public function toHumanReadable(?string $recipientName = null): string
     {
-        return self::LABELS[$this->value];
+        $label = self::LABELS[$this->value];
+
+        if ($this === self::HIDDEN && $recipientName !== null && $recipientName !== '') {
+            return str_replace('ontvanger', $recipientName, $label);
+        }
+
+        return $label;
     }
 
     /**
      * Helper for form/select components requiring value => label arrays.
      */
-    public static function options(): array
+    public static function options(?string $recipientName = null): array
     {
-        return self::LABELS;
+        $options = [];
+
+        foreach (self::cases() as $visibility) {
+            $options[$visibility->value] = $visibility->toHumanReadable($recipientName);
+        }
+
+        return $options;
     }
 
     /**
@@ -38,12 +50,23 @@ enum CadeauVisibility: string
     public static function fromLocalized(string $value): self
     {
         $normalized = Str::of($value)->upper()->trim();
+        $normalizedString = (string) $normalized;
 
-        return match ($normalized) {
-            'PUBLIC', 'PUBLIEK', 'IEDEREEN' => self::PUBLIC,
-            'HIDDEN', 'VERBORGEN', 'IEDEREEN BEHALVE ONTVANGER' => self::HIDDEN,
-            'PRIVATE', 'PRIVE', 'PRIVÉ', 'ALLEEN IK' => self::PRIVATE,
-            default => self::PUBLIC,
-        };
+        if (in_array($normalizedString, ['PUBLIC', 'PUBLIEK', 'IEDEREEN'], true)) {
+            return self::PUBLIC;
+        }
+
+        if (
+            in_array($normalizedString, ['HIDDEN', 'VERBORGEN', 'IEDEREEN BEHALVE ONTVANGER'], true)
+            || $normalized->startsWith('IEDEREEN BEHALVE ')
+        ) {
+            return self::HIDDEN;
+        }
+
+        if (in_array($normalizedString, ['PRIVATE', 'PRIVE', 'PRIVÉ', 'ALLEEN IK'], true)) {
+            return self::PRIVATE;
+        }
+
+        return self::PUBLIC;
     }
 }

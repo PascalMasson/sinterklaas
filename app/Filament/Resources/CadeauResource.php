@@ -57,6 +57,8 @@ class CadeauResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
+        $recipientName = static::getListName();
+
         return $schema
             ->schema([
                 TextInput::make('title')
@@ -79,7 +81,7 @@ class CadeauResource extends Resource
 
                 Select::make('visibility')
                     ->label('Zichtbaarheid')
-                    ->options(CadeauVisibility::options())
+                    ->options(CadeauVisibility::options($recipientName))
                     ->default(CadeauVisibility::HIDDEN->value)
                     ->hidden(fn () => static::isOwnList())
                     ->dehydrated(fn () => ! static::isOwnList())
