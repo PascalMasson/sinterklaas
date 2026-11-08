@@ -169,7 +169,16 @@ docker compose -f docker-compose.remote.yaml pull app
 docker compose -f docker-compose.remote.yaml up -d app
 ```
 
-Run database migrations explicitly when a release contains migration changes:
+The release image uses ServerSideUp’s Laravel automation. On startup it waits for the database and runs migrations with `--force` before the application starts serving traffic:
+
+```yaml
+environment:
+  - AUTORUN_ENABLED=true
+  - AUTORUN_LARAVEL_MIGRATION=true
+  - AUTORUN_LARAVEL_MIGRATION_FORCE=true
+```
+
+If a migration needs to be run manually while troubleshooting, use:
 
 ```sh
 docker compose -f docker-compose.remote.yaml exec app php artisan migrate --force
