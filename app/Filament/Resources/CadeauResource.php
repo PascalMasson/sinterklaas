@@ -170,12 +170,14 @@ class CadeauResource extends Resource
                     ->action(
                         Action::make("view-image")
                             ->label("Bekijk afbeeldingen")
+                            ->visible(fn (Cadeau $record): bool => $record->hasMedia())
                             ->modalContent(function (Cadeau $record) {
                                 $images = [];
                                 foreach ($record->getMedia() as $media) {
                                     $images[] = [
                                         'imgSrc' => $media->getUrl(),
                                         'imgAlt' => $media->name,
+                                        'isImage' => str_starts_with((string) $media->mime_type, 'image/'),
                                     ];
                                 }
                                 return view('filament.pages.actions.view-images', ['images' => $images]);

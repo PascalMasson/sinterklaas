@@ -36,7 +36,16 @@
     <div class="relative ">
         <template x-for="(slide, index) in slides">
             <div x-show="currentSlideIndex == index + 1" class="">
-                <img class="w-full h-full object-cover text-slate-700 dark:text-slate-300" x-bind:src="slide.imgSrc" x-bind:alt="slide.imgAlt" />
+                <template x-if="slide.isImage">
+                    <img class="w-full h-full object-cover text-slate-700 dark:text-slate-300" x-bind:src="slide.imgSrc" x-bind:alt="slide.imgAlt" />
+                </template>
+                <template x-if="!slide.isImage">
+                    <div class="flex min-h-48 items-center justify-center p-6 text-center">
+                        <a class="text-primary-600 underline hover:text-primary-500" x-bind:href="slide.imgSrc" x-bind:target="'_blank'" x-bind:rel="'noopener noreferrer'">
+                            Open <span x-text="slide.imgAlt"></span>
+                        </a>
+                    </div>
+                </template>
             </div>
         </template>
     </div>
