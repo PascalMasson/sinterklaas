@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Cadeaus\CadeauVisibilityPolicy;
 use App\Enums\CadeauStatus;
 use App\Enums\CadeauVisibility;
 use Illuminate\Database\Eloquent\Model;
@@ -56,31 +57,17 @@ class Cadeau extends Model implements HasMedia
             if ($addingToOwnList) {
                 $cadeau->visibility = CadeauVisibility::PUBLIC;
             } elseif ($cadeau->visibility === null) {
-                $cadeau->visibility = CadeauVisibility::HIDDEN;
+                $cadeau->visibility = (new CadeauVisibilityPolicy())->defaultFor(
+                    viewerId: $viewerId,
+                    listId: $cadeau->list_user_id,
+                );
             }
         });
     }
 
     public function scopeVisibleFor(Builder $query, ?User $viewer): Builder
     {
-        if (!$viewer) {
-            return $query->where('visibility', CadeauVisibility::PUBLIC->value);
-        }
-
-        return $query->where(function (Builder $query) use ($viewer) {
-            $query
-                ->where('visibility', CadeauVisibility::PUBLIC->value)
-                ->orWhere(function (Builder $query) use ($viewer) {
-                    $query
-                        ->where('visibility', CadeauVisibility::HIDDEN->value)
-                        ->where('list_user_id', '!=', $viewer->id);
-                })
-                ->orWhere(function (Builder $query) use ($viewer) {
-                    $query
-                        ->where('visibility', CadeauVisibility::PRIVATE->value)
-                        ->where('created_by_user_id', $viewer->id);
-                });
-        });
+        return (new CadeauVisibilityPolicy())->applyTo($query, $viewer);
     }
 
     public function createdByUser(): BelongsTo

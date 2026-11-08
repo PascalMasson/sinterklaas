@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Domain\Cadeaus\CadeauVisibilityPolicy;
 use App\Enums\CadeauStatus;
 use App\Enums\CadeauVisibility;
 use BackedEnum;
@@ -59,6 +60,7 @@ class CadeauResource extends Resource
     public static function form(Schema $schema): Schema
     {
         $recipientName = static::getListName();
+        $visibilityPolicy = new CadeauVisibilityPolicy();
 
         return $schema
             ->schema([
@@ -84,8 +86,8 @@ class CadeauResource extends Resource
                     ->label('Zichtbaarheid')
                     ->options(CadeauVisibility::options($recipientName))
                     ->default(CadeauVisibility::HIDDEN->value)
-                    ->hidden(fn () => static::isOwnList())
-                    ->dehydrated(fn () => ! static::isOwnList())
+                    ->hidden(fn () => ! $visibilityPolicy->canConfigure(auth()->user(), static::getListId()))
+                    ->dehydrated(fn () => $visibilityPolicy->canConfigure(auth()->user(), static::getListId()))
                     ->required(),
 
                 Radio::make('location_type')
@@ -127,7 +129,7 @@ class CadeauResource extends Resource
                 TextColumn::make('visibility')
                     ->label('Zichtbaarheid')
                     ->badge()
-                    ->hidden(fn () => static::isOwnList())
+                    ->hidden(fn () => ! (new CadeauVisibilityPolicy())->canConfigure(auth()->user(), static::getListId()))
                     ->color(fn($state) => match (($state instanceof CadeauVisibility) ? $state : CadeauVisibility::from($state)) {
                         CadeauVisibility::PUBLIC => 'success',
                         CadeauVisibility::HIDDEN => 'warning',
@@ -231,10 +233,10 @@ class CadeauResource extends Resource
             ->actions([
                 ViewAction::make()
                     ->label('')
-                    ->visible(fn (Cadeau $record) => static::canView($record)),
+                    ->visible(fn (Cadeau $record) => (new CadeauVisibilityPolicy())->canView($record, auth()->user())),
                 EditAction::make()
                     ->label("")
-                    ->visible(fn (Cadeau $record) => static::isOwnList() || (auth()->check() && (int) $record->created_by_user_id === (int) auth()->id())),
+                    ->visible(fn (Cadeau $record) => (new CadeauVisibilityPolicy())->canEdit($record, auth()->user())),
                 DeleteAction::make()->label("")->hidden(fn() => static::getListId() !== auth()->id()),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),
@@ -322,20 +324,6 @@ class CadeauResource extends Resource
     public static function getTitleCasePluralModelLabel(): string
     {
         return "Lijstje van " . static::getListName();
-    }
-
-    public static function canEdit(Model $record): bool
-    {
-        if (! auth()->check()) {
-            return false;
-        }
-
-        return static::isOwnList() || (int) $record->created_by_user_id === (int) auth()->id();
-    }
-
-    public static function canView(Model $record): bool
-    {
-        return auth()->check() && (int) $record->list_user_id !== (int) auth()->id();
     }
 
     protected static function isOwnList(): bool

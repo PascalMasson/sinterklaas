@@ -16,6 +16,19 @@ enum CadeauVisibility: string
         self::PRIVATE->value => 'Alleen ik',
     ];
 
+    public function isVisibleTo(?int $viewerId, ?int $recipientId, ?int $creatorId): bool
+    {
+        if ($viewerId === null) {
+            return $this === self::PUBLIC;
+        }
+
+        return match ($this) {
+            self::PUBLIC => true,
+            self::HIDDEN => $viewerId !== $recipientId,
+            self::PRIVATE => $viewerId === $creatorId,
+        };
+    }
+
     /**
      * Returns the Dutch label for the visibility state.
      */
