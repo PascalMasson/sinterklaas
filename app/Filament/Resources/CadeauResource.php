@@ -229,7 +229,7 @@ class CadeauResource extends Resource
             ->actions([
                 ViewAction::make()
                     ->label('')
-                    ->visible(fn () => auth()->check()),
+                    ->visible(fn (Cadeau $record) => static::canView($record)),
                 EditAction::make()
                     ->label("")
                     ->visible(fn (Cadeau $record) => static::isOwnList() || (auth()->check() && (int) $record->created_by_user_id === (int) auth()->id())),
@@ -329,6 +329,11 @@ class CadeauResource extends Resource
         }
 
         return static::isOwnList() || (int) $record->created_by_user_id === (int) auth()->id();
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return auth()->check() && (int) $record->list_user_id !== (int) auth()->id();
     }
 
     protected static function isOwnList(): bool
