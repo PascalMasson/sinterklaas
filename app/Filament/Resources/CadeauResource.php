@@ -72,7 +72,8 @@ class CadeauResource extends Resource
                 TextInput::make('status')
                     ->label("Status")
                     ->required()
-                    ->visibleOn("view"),
+                    ->visibleOn("view")
+                    ->hidden(fn () => static::isOwnList()),
 
                 TextInput::make('price')
                     ->label("Prijs")
