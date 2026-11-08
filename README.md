@@ -175,7 +175,14 @@ Run database migrations explicitly when a release contains migration changes:
 docker compose -f docker-compose.remote.yaml exec app php artisan migrate --force
 ```
 
-The remote Compose configuration keeps uploaded media in a host-mounted `storage` directory and connects the application to the existing MySQL socket. Keep production credentials outside the repository and provide them through the server’s deployment configuration.
+The remote Compose configuration keeps uploaded media in a host-mounted `storage` directory and connects the application to the existing MySQL socket. Mount the server-only `.env` file at `/run/secrets/sinterklaas.env`; the release image copies it into `/var/www/html/.env` during startup, sets it readable by the PHP worker, and refuses to start if `APP_KEY` is missing. Keep production credentials outside the repository and provide them through the server’s deployment configuration.
+
+The relevant remote Compose volume is:
+
+```yaml
+volumes:
+  - '/path/on/server/.env:/run/secrets/sinterklaas.env:ro'
+```
 
 ### Local image helpers
 
