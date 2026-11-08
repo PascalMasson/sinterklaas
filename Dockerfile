@@ -1,7 +1,7 @@
 # ==========================
 # Base build configuration
 # ==========================
-ARG PHP_VERSION=8.4
+ARG PHP_VERSION=8.5
 
 FROM serversideup/php:${PHP_VERSION}-fpm-nginx-alpine AS base
 

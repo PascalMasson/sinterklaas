@@ -3,14 +3,8 @@ services:
     env_file:
       - '${DEVCTL_RUNTIME_ENV:-.env}'
     extra_hosts:
-      - "${DEVCTL_APP_HOST:-sinterklaas.test}:127.0.0.1"
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: development
-      args:
-        USER_ID: 1000
-        GROUP_ID: 1000
+      - "${DEVCTL_APP_HOST:-sinterklaas.dev.local}:127.0.0.1"
+    image: '${SINTERKLAAS_DEV_IMAGE:-sinterklaas-release:local}'
     environment:
       PHP_OPCACHE_ENABLE: 1
       PHP_IDE_CONFIG: "serverName=Sinterklaas"
@@ -21,14 +15,14 @@ services:
     #   - '${APP_PORT:-80}:8080'
     #   - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
     volumes:
-      - '.:/var/www/html'
+      - './storage:/var/www/html/storage'
     networks:
       - sail
       - web
     labels:
       - 'traefik.enable=true'
       - 'traefik.docker.network=web'
-      - 'traefik.http.routers.${DEVCTL_APP_ROUTER:-sinterklaas}.rule=Host(`${DEVCTL_APP_HOST:-sinterklaas.test}`)'
+      - 'traefik.http.routers.${DEVCTL_APP_ROUTER:-sinterklaas}.rule=Host(`${DEVCTL_APP_HOST:-sinterklaas.dev.local}`)'
       - 'traefik.http.routers.${DEVCTL_APP_ROUTER:-sinterklaas}.entrypoints=https'
       - 'traefik.http.routers.${DEVCTL_APP_ROUTER:-sinterklaas}.tls=true'
       - 'traefik.http.routers.${DEVCTL_APP_ROUTER:-sinterklaas}.service=${DEVCTL_APP_ROUTER:-sinterklaas}@docker'
@@ -98,7 +92,7 @@ services:
     labels:
       - 'traefik.enable=true'
       - 'traefik.docker.network=web'
-      - 'traefik.http.routers.${DEVCTL_PMA_ROUTER:-sinterklaas-phpmyadmin}.rule=Host(`${DEVCTL_PMA_HOST:-pma-sinterklaas.test}`)'
+      - 'traefik.http.routers.${DEVCTL_PMA_ROUTER:-sinterklaas-phpmyadmin}.rule=Host(`${DEVCTL_PMA_HOST:-phpmyadmin.dev.local}`)'
       - 'traefik.http.routers.${DEVCTL_PMA_ROUTER:-sinterklaas-phpmyadmin}.entrypoints=https'
       - 'traefik.http.routers.${DEVCTL_PMA_ROUTER:-sinterklaas-phpmyadmin}.tls=true'
       - 'traefik.http.services.${DEVCTL_PMA_ROUTER:-sinterklaas-phpmyadmin}.loadbalancer.server.port=80'
