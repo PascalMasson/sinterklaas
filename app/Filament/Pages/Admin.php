@@ -132,7 +132,7 @@ class Admin extends Page
                 default => throw new Exception("Unknown status: " . $old->Status)
             };
 
-            $new->price = $old->prijs ?? 0;
+            $new->price = $old->prijs ?? null;
 
             if(filter_var($old->location, FILTER_VALIDATE_URL)) {
                 $new->location_url = $old->location;

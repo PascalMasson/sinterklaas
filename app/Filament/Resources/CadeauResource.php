@@ -29,6 +29,7 @@ use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\SelectColumn;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -76,7 +77,6 @@ class CadeauResource extends Resource
                 TextInput::make('price')
                     ->label("Prijs")
                     ->prefix("€")
-                    ->required()
                     ->numeric(),
 
                 Select::make('visibility')
@@ -226,6 +226,9 @@ class CadeauResource extends Resource
             ])
             ->filtersLayout(FiltersLayout::AboveContent)
             ->actions([
+                ViewAction::make()
+                    ->label('')
+                    ->visible(fn () => auth()->check()),
                 EditAction::make()
                     ->label("")
                     ->visible(fn (Cadeau $record) => static::isOwnList() || (auth()->check() && (int) $record->created_by_user_id === (int) auth()->id())),
@@ -258,6 +261,7 @@ class CadeauResource extends Resource
             'index' => Pages\ListCadeaus::route('/'),
             'create' => Pages\CreateCadeau::route('/create'),
             'edit' => Pages\EditCadeau::route('/{record}/edit'),
+            'view' => Pages\ViewCadeau::route('/{record}'),
         ];
     }
 
@@ -268,12 +272,12 @@ class CadeauResource extends Resource
             ->visibleFor(auth()->user());
     }
 
-    public static function getUrl(?string $name = null, array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?Model $tenant = null, bool $shouldGuessMissingParameters = false): string
+    public static function getUrl(?string $name = null, array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?Model $tenant = null, bool $shouldGuessMissingParameters = false, ?string $configuration = null): string
     {
         if(!array_key_exists("listId", $parameters)){
             $parameters["listId"] = static::getListId();
         }
-        return parent::getUrl($name, $parameters, $isAbsolute, $panel, $tenant, $shouldGuessMissingParameters);
+        return parent::getUrl($name, $parameters, $isAbsolute, $panel, $tenant, $shouldGuessMissingParameters, $configuration);
     }
 
     public static function getListId(): ?int

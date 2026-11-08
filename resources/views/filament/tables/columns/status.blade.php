@@ -20,13 +20,13 @@
     }"
     x-init="
         () => {
-            Livewire.hook('commit', ({ component, commit, succeed, fail, respond }) => {
-                succeed(({ snapshot, effect }) => {
-                    $nextTick(() => {
-                        if (component.id !== @js($this->getId())) {
-                            return
-                        }
+            Livewire.interceptMessage(({ message, onSuccess }) => {
+                if (message.component.id !== @js($this->getId())) {
+                    return
+                }
 
+                onSuccess(() => {
+                    $nextTick(() => {
                         if (! $refs.newState) {
                             return
                         }

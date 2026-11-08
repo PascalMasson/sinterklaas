@@ -119,11 +119,11 @@ class Cadeau extends Model implements HasMedia
 
     public function setPriceAttribute($value)
     {
-        $this->attributes['price'] = number_format($value, 2, '.', '');
+        $this->attributes['price'] = blank($value) ? null : number_format($value, 2, '.', '');
     }
 
     public function getPriceAttribute($value)
     {
-        return number_format($value, 2, '.', '');
+        return $value === null ? null : number_format($value, 2, '.', '');
     }
 }

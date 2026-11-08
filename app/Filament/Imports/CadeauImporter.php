@@ -28,7 +28,7 @@ class CadeauImporter extends Importer
                     };
                 }),
             ImportColumn::make("price")
-                ->castStateUsing(fn ($state) => str($state ?? "0")->replace(',', '.')->toString()),
+                ->castStateUsing(fn ($state) => filled($state) ? str($state)->replace(',', '.')->toString() : null),
             ImportColumn::make("location")
                 ->fillRecordUsing(function (Cadeau $record, string $state) {
                     if (filter_var($state, FILTER_VALIDATE_URL)) {
