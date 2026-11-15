@@ -2,7 +2,7 @@
 
 namespace App\Filament\Imports;
 
-use App\Domain\Cadeaus\CadeauImportNormalizer;
+use App\Domain\Cadeaus\CadeauIngestion;
 use App\Models\Cadeau;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
@@ -33,7 +33,7 @@ class CadeauImporter extends Importer
 
     public function beforeSave(): void
     {
-        $this->record?->forceFill((new CadeauImportNormalizer())->normalize($this->data));
+        $this->record?->forceFill(app(CadeauIngestion::class)->canonicalize($this->data));
     }
 
     public function resolveRecord(): ?Cadeau

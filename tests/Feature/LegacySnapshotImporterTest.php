@@ -2,8 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Domain\Cadeaus\CadeauImportNormalizer;
+use App\Domain\Cadeaus\CadeauIngestion;
 use App\Domain\LegacySnapshots\LegacySnapshotImporter;
+use App\Infrastructure\Cadeaus\EloquentCadeauPersistence;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -134,6 +135,6 @@ class LegacySnapshotImporterTest extends TestCase
 
     private function importer(): LegacySnapshotImporter
     {
-        return new LegacySnapshotImporter(new CadeauImportNormalizer);
+        return new LegacySnapshotImporter(new CadeauIngestion(new EloquentCadeauPersistence));
     }
 }

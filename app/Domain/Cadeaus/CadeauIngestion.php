@@ -6,13 +6,19 @@ use App\Enums\CadeauStatus;
 use App\Enums\CadeauVisibility;
 use InvalidArgumentException;
 
-final class CadeauImportNormalizer
+final class CadeauIngestion
 {
+    public function __construct(
+        private CadeauPersistence $persistence,
+    ) {}
+
     /**
+     * Convert an external cadeau row into canonical cadeau data.
+     *
      * @param  array<string, mixed>  $source
      * @return array<string, mixed>
      */
-    public function normalize(array $source): array
+    public function canonicalize(array $source): array
     {
         $attributes = [];
 
@@ -30,6 +36,10 @@ final class CadeauImportNormalizer
 
         if (array_key_exists('status', $source)) {
             $attributes['status'] = $this->normalizeStatus($source['status']);
+
+            if ($attributes['status'] === CadeauStatus::AVAILABLE) {
+                $attributes['reserved_by_user_id'] = null;
+            }
         }
 
         if (array_key_exists('price', $source)) {
@@ -45,6 +55,20 @@ final class CadeauImportNormalizer
         }
 
         return $attributes;
+    }
+
+    /**
+     * @param  iterable<array<string, mixed>>  $sources
+     */
+    public function replace(iterable $sources): void
+    {
+        $cadeaus = [];
+
+        foreach ($sources as $source) {
+            $cadeaus[] = $this->canonicalize($source);
+        }
+
+        $this->persistence->replace($cadeaus);
     }
 
     private function normalizeStatus(mixed $value): CadeauStatus

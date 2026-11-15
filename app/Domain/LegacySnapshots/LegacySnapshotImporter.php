@@ -2,9 +2,7 @@
 
 namespace App\Domain\LegacySnapshots;
 
-use App\Domain\Cadeaus\CadeauImportNormalizer;
-use App\Enums\CadeauStatus;
-use App\Models\Cadeau;
+use App\Domain\Cadeaus\CadeauIngestion;
 use App\Models\Fopper;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -12,7 +10,7 @@ use InvalidArgumentException;
 final class LegacySnapshotImporter
 {
     public function __construct(
-        private CadeauImportNormalizer $normalizer,
+        private CadeauIngestion $ingestion,
     ) {}
 
     /**
@@ -35,29 +33,18 @@ final class LegacySnapshotImporter
                 $fopper->save();
             }
 
-            DB::table('cadeaus')->delete();
-            DB::table('media')->delete();
-
-            foreach ($tables['cadeaus'] as $row) {
-                $status = $this->required($row, 'status');
-                $attributes = $this->normalizer->normalize([
+            $this->ingestion->replace(array_map(
+                fn (array $row): array => [
                     'title' => $this->required($row, 'title'),
-                    'status' => $status,
+                    'status' => $this->required($row, 'status'),
                     'price' => $row['prijs'] ?? null,
                     'location' => $row['location'] ?? null,
                     'created_by_user_id' => $this->required($row, 'createdBy'),
                     'list_user_id' => $this->required($row, 'listId'),
                     'reserved_by_user_id' => $row['reservedBy'] ?? null,
-                ]);
-
-                $attributes['reserved_by_user_id'] = $attributes['status'] === CadeauStatus::AVAILABLE
-                    ? null
-                    : ($row['reservedBy'] ?? null);
-
-                $cadeau = new Cadeau;
-                $cadeau->forceFill($attributes);
-                $cadeau->save();
-            }
+                ],
+                $tables['cadeaus'],
+            ));
         });
     }
 

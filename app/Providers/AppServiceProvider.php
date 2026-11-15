@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domain\Cadeaus\CadeauPersistence;
+use App\Infrastructure\Cadeaus\EloquentCadeauPersistence;
 use Filament\Http\Responses\Auth\LoginResponse;
 use Filament\Navigation\NavigationManager;
 use Illuminate\Support\Facades\Config;
@@ -15,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(CadeauPersistence::class, EloquentCadeauPersistence::class);
     }
 
     /**

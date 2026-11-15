@@ -2,7 +2,6 @@
 
 namespace App\Filament\Pages;
 
-use App\Domain\Cadeaus\CadeauImportNormalizer;
 use App\Domain\Cadeaus\CadeauReservationPolicy;
 use App\Domain\LegacySnapshots\LegacySnapshotImporter;
 use App\Enums\CadeauStatus;
@@ -110,7 +109,7 @@ class Admin extends Page
 
         $filecontents = file_get_contents($data['databaseJson']->getRealPath());
         $snapshot = json_decode($filecontents, true, 512, JSON_THROW_ON_ERROR);
-        (new LegacySnapshotImporter(new CadeauImportNormalizer()))->import($snapshot);
+        app(LegacySnapshotImporter::class)->import($snapshot);
 
         Notification::make()
             ->title("Database is succesvol geimporteerd")
