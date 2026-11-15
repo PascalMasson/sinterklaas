@@ -8,10 +8,20 @@ use Illuminate\Support\Facades\Cache;
 
 final class ParticipantListContext
 {
-    public function __construct(
+    private function __construct(
         private string $routeParameter,
         private string $sessionKey,
     ) {}
+
+    public static function forList(): self
+    {
+        return new self('listId', 'listId');
+    }
+
+    public static function forTarget(): self
+    {
+        return new self('targetId', 'targetId');
+    }
 
     public function id(): ?int
     {

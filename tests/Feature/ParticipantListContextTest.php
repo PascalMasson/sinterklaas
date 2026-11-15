@@ -34,7 +34,7 @@ class ParticipantListContextTest extends TestCase
 
     public function test_it_resolves_the_current_participant_list_from_session(): void
     {
-        $context = new ParticipantListContext('listId', 'listId');
+        $context = ParticipantListContext::forList();
         session()->put('listId', 2);
 
         self::assertSame(2, $context->id());
@@ -44,10 +44,19 @@ class ParticipantListContextTest extends TestCase
 
     public function test_it_builds_navigation_items_without_the_excluded_participant(): void
     {
-        $context = new ParticipantListContext('listId', 'listId');
+        $context = ParticipantListContext::forList();
 
         self::assertSame([
             [2, 'Marianne'],
         ], $context->navigationItems(1, fn (int $id, string $name): array => [$id, $name]));
+    }
+
+    public function test_named_contexts_keep_resource_route_keys_distinct(): void
+    {
+        session()->put('listId', 1);
+        session()->put('targetId', 2);
+
+        self::assertSame(['listId' => 1], ParticipantListContext::forList()->withCurrentId([]));
+        self::assertSame(['targetId' => 2], ParticipantListContext::forTarget()->withCurrentId([]));
     }
 }

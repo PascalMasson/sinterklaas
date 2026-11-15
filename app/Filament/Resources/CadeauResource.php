@@ -314,7 +314,7 @@ class CadeauResource extends Resource
 
     private static function context(): ParticipantListContext
     {
-        return new ParticipantListContext('listId', 'listId');
+        return ParticipantListContext::forList();
     }
 
 }

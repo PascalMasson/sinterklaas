@@ -18,6 +18,6 @@ class CreateFopper extends CreateRecord
 
     protected function getRedirectUrl(): string
     {
-        return static::$resource::getUrl(parameters: ['listId' => static::$resource::getListId()]);
+        return static::$resource::getUrl(parameters: ['targetId' => static::$resource::getListId()]);
     }
 }

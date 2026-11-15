@@ -159,6 +159,6 @@ class FopperResource extends Resource
 
     private static function context(): ParticipantListContext
     {
-        return new ParticipantListContext('targetId', 'targetId');
+        return ParticipantListContext::forTarget();
     }
 }

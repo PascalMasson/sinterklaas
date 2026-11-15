@@ -4,13 +4,11 @@ namespace App\Filament\Pages;
 
 use App\Domain\Cadeaus\CadeauImportNormalizer;
 use App\Domain\Cadeaus\CadeauReservationPolicy;
+use App\Domain\LegacySnapshots\LegacySnapshotImporter;
 use App\Enums\CadeauStatus;
-use App\Filament\Imports\CadeauImporter;
 use App\Models\Cadeau;
-use App\Models\Fopper;
 use App\Models\User;
 use BackedEnum;
-use Filament\Actions\ImportAction;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\DB;
@@ -111,45 +109,8 @@ class Admin extends Page
         ]);
 
         $filecontents = file_get_contents($data['databaseJson']->getRealPath());
-        $all_data = json_decode($filecontents, null, 512, JSON_THROW_ON_ERROR);
-        //filter all data where type is table
-        $tablesdata = array_filter($all_data, fn ($item): bool => $item->type == 'table' && $item->name != 'gebruikers');
-        $tables = [];
-        foreach ($tablesdata as $tabledata) {
-            $tables[$tabledata->name] = $tabledata->data;
-        }
-
-        $normalizer = new CadeauImportNormalizer();
-
-        DB::transaction(function () use ($tables, $normalizer): void {
-            DB::table('foppers')->delete();
-            foreach ($tables['foppers'] as $old) {
-                $new = new Fopper();
-                $new->inhoud = $old->description;
-                $new->created_by_user_id = $old->fopperVan;
-                $new->created_for_user_id = $old->fopperVoor;
-                $new->save();
-            }
-
-            DB::table('cadeaus')->delete();
-            DB::table('media')->delete();
-
-            foreach ($tables['cadeaus'] as $old) {
-                $new = new Cadeau();
-                $new->forceFill($normalizer->normalize([
-                    'title' => $old->title,
-                    'status' => $old->status,
-                    'price' => $old->prijs ?? null,
-                    'location' => $old->location,
-                    'created_by_user_id' => $old->createdBy,
-                    'list_user_id' => $old->listId,
-                    'reserved_by_user_id' => $old->status !== 'VRIJ'
-                        ? $old->reservedBy
-                        : null,
-                ]));
-                $new->save();
-            }
-        });
+        $snapshot = json_decode($filecontents, true, 512, JSON_THROW_ON_ERROR);
+        (new LegacySnapshotImporter(new CadeauImportNormalizer()))->import($snapshot);
 
         Notification::make()
             ->title("Database is succesvol geimporteerd")
