@@ -2,12 +2,13 @@
 
 namespace App\Filament\Pages;
 
+use App\Domain\Cadeaus\CadeauImportNormalizer;
+use App\Domain\Cadeaus\CadeauReservationPolicy;
 use App\Enums\CadeauStatus;
 use App\Filament\Imports\CadeauImporter;
 use App\Models\Cadeau;
 use App\Models\Fopper;
 use App\Models\User;
-use Exception;
 use BackedEnum;
 use Filament\Actions\ImportAction;
 use Filament\Notifications\Notification;
@@ -29,9 +30,18 @@ class Admin extends Page
     }
 
     public function resetCadeaus(){
-        Cadeau::where("status", "!=", CadeauStatus::AVAILABLE)
-            ->where("deleted_at", null)
-            ->update(["status" => CadeauStatus::AVAILABLE]);
+        $reservationPolicy = new CadeauReservationPolicy();
+
+        DB::transaction(function () use ($reservationPolicy): void {
+            Cadeau::where("status", "!=", CadeauStatus::AVAILABLE)
+                ->whereNull("deleted_at")
+                ->get()
+                ->each(function (Cadeau $cadeau) use ($reservationPolicy): void {
+                    $reservationPolicy->reset($cadeau);
+                    $cadeau->save();
+                });
+        });
+
         Notification::make()
             ->title("Cadeaus succesvol gereset naar vrij")
             ->success()
@@ -109,46 +119,37 @@ class Admin extends Page
             $tables[$tabledata->name] = $tabledata->data;
         }
 
-        DB::table('foppers')->truncate();
-        foreach ($tables['foppers'] as $old) {
-            $new = new Fopper();
-            $new->inhoud = $old->description;
-            $new->created_by_user_id = $old->fopperVan;
-            $new->created_for_user_id = $old->fopperVoor;
-            $new->save();
-        }
+        $normalizer = new CadeauImportNormalizer();
 
-        DB::table('cadeaus')->truncate();
-        DB::table('media')->truncate();
-
-        foreach ($tables['cadeaus'] as $old) {
-            $new = new Cadeau();
-            $new->title = $old->title;
-
-            $new->status = match ($old->status) {
-                'VRIJ' => CadeauStatus::AVAILABLE,
-                'GERESERVEERD' => CadeauStatus::RESERVED,
-                'GEKOCHT' => CadeauStatus::PURCHASED,
-                default => throw new Exception("Unknown status: " . $old->Status)
-            };
-
-            $new->price = $old->prijs ?? null;
-
-            if(filter_var($old->location, FILTER_VALIDATE_URL)) {
-                $new->location_url = $old->location;
-                $new->location_type = 'website';
-            } else{
-                $new->location_other = $old->location;
-                $new->location_type = 'overig';
+        DB::transaction(function () use ($tables, $normalizer): void {
+            DB::table('foppers')->delete();
+            foreach ($tables['foppers'] as $old) {
+                $new = new Fopper();
+                $new->inhoud = $old->description;
+                $new->created_by_user_id = $old->fopperVan;
+                $new->created_for_user_id = $old->fopperVoor;
+                $new->save();
             }
 
-            $new->created_by_user_id = $old->createdBy;
-            $new->list_user_id = $old->listId;
-            if ($old->status != 'VRIJ') {
-                $new->reserved_by_user_id = $old->reservedBy;
+            DB::table('cadeaus')->delete();
+            DB::table('media')->delete();
+
+            foreach ($tables['cadeaus'] as $old) {
+                $new = new Cadeau();
+                $new->forceFill($normalizer->normalize([
+                    'title' => $old->title,
+                    'status' => $old->status,
+                    'price' => $old->prijs ?? null,
+                    'location' => $old->location,
+                    'created_by_user_id' => $old->createdBy,
+                    'list_user_id' => $old->listId,
+                    'reserved_by_user_id' => $old->status !== 'VRIJ'
+                        ? $old->reservedBy
+                        : null,
+                ]));
+                $new->save();
             }
-            $new->save();
-        }
+        });
 
         Notification::make()
             ->title("Database is succesvol geimporteerd")

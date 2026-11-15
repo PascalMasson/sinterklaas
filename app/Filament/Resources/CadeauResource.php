@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Domain\Cadeaus\CadeauReservationPolicy;
 use App\Domain\Cadeaus\CadeauVisibilityPolicy;
 use App\Enums\CadeauStatus;
 use App\Enums\CadeauVisibility;
@@ -9,7 +10,8 @@ use BackedEnum;
 use App\Filament\Clusters\Lijstjes;
 use App\Filament\Resources\CadeauResource\Pages;
 use App\Models\Cadeau;
-use App\Models\User;
+use App\Media\MediaPreview;
+use App\Navigation\ParticipantListContext;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
@@ -43,7 +45,6 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\Facades\Cache;
 
 class CadeauResource extends Resource
 {
@@ -53,9 +54,6 @@ class CadeauResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-gift';
     protected static bool $shouldRegisterNavigation = true;
-
-    protected static $cachedName = null;
-
 
     public static function form(Schema $schema): Schema
     {
@@ -124,6 +122,9 @@ class CadeauResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $reservationPolicy = new CadeauReservationPolicy();
+        $mediaPreview = new MediaPreview();
+
         return $table
             ->columns(array(
                 TextColumn::make('visibility')
@@ -173,16 +174,10 @@ class CadeauResource extends Resource
                         Action::make("view-image")
                             ->label("Bekijk afbeeldingen")
                             ->visible(fn (Cadeau $record): bool => $record->hasMedia())
-                            ->modalContent(function (Cadeau $record) {
-                                $images = [];
-                                foreach ($record->getMedia() as $media) {
-                                    $images[] = [
-                                        'imgSrc' => $media->getUrl(),
-                                        'imgAlt' => $media->name,
-                                        'isImage' => str_starts_with((string) $media->mime_type, 'image/'),
-                                    ];
-                                }
-                                return view('filament.pages.actions.view-images', ['images' => $images]);
+                            ->modalContent(function (Cadeau $record) use ($mediaPreview) {
+                                return view('filament.pages.actions.view-images', [
+                                    'images' => $mediaPreview->from($record->getMedia()),
+                                ]);
                             })
                             ->modalSubmitAction(false)
                     ),
@@ -197,24 +192,13 @@ class CadeauResource extends Resource
                     ->searchable()
                     ->alignEnd()
                     ->hidden(fn() => static::getListId() == auth()->id())
-                    ->disabled(function (Cadeau $record){
-                        $edit_ids = [auth()->id(), auth()->user()->partnerId];
-                        if($record->status == CadeauStatus::AVAILABLE){
-                            return false;
-                        }
-                        if(in_array($record->reserved_by_user_id, $edit_ids)){
-                            return false;
-                        }
-
-                        return true;
-                    })
-                    ->beforeStateUpdated(function (Cadeau $record, $state) {
-                        if($state == CadeauStatus::RESERVED->value || $state == CadeauStatus::PURCHASED->value){
-                            $record->reserved_by_user_id = auth()->id();
-                        }
-                        if($state == CadeauStatus::AVAILABLE->value){
-                            $record->reserved_by_user_id = null;
-                        }
+                    ->disabled(fn (Cadeau $record): bool => ! $reservationPolicy->canChangeStatus($record, auth()->user()))
+                    ->beforeStateUpdated(function (Cadeau $record, string $state) use ($reservationPolicy): void {
+                        $reservationPolicy->changeStatus(
+                            $record,
+                            CadeauStatus::from($state),
+                            auth()->user(),
+                        );
                     }),
 
             ))
@@ -279,46 +263,37 @@ class CadeauResource extends Resource
 
     public static function getUrl(?string $name = null, array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?Model $tenant = null, bool $shouldGuessMissingParameters = false, ?string $configuration = null): string
     {
-        if(!array_key_exists("listId", $parameters)){
-            $parameters["listId"] = static::getListId();
-        }
+        $parameters = static::context()->withCurrentId($parameters);
+
         return parent::getUrl($name, $parameters, $isAbsolute, $panel, $tenant, $shouldGuessMissingParameters, $configuration);
     }
 
     public static function getListId(): ?int
     {
-        return request()->route()->parameter('listId') ?? session()->get('listId') ?? null;
+        return static::context()->id();
     }
-
 
     protected static function getListName(): ?string
     {
-        if (is_null(static::$cachedName)) {
-            static::$cachedName = User::find(static::getListId())->name;
-        }
-        return static::$cachedName;
+        return static::context()->name();
     }
-
 
     public static function getNavigationItems(): array
     {
-        $lijstIds = Cache::remember("resource-list-id-nav-items", 3600, fn ()=> User::orderBy("name")->select('id', 'name')->pluck("name", "id")->toArray());
-        $items = [];
+        $context = static::context();
 
-        foreach ($lijstIds as $lijstId => $name) {
-            $items[] = NavigationItem::make($name)
+        return $context->navigationItems(null, function (int $lijstId, string $name) use ($context): NavigationItem {
+            return NavigationItem::make($name)
                 ->group("Lijstjes")
                 ->parentItem(static::getNavigationParentItem())
                 ->icon(static::getNavigationIcon())
                 ->activeIcon(static::getActiveNavigationIcon())
-                ->isActiveWhen(fn () => (request()->routeIs(static::getRouteBaseName() . '.*') && request()->route()->parameter('listId') == $lijstId))
+                ->isActiveWhen(fn () => $context->isCurrent(static::getRouteBaseName(), $lijstId))
                 ->badge(static::getNavigationBadge(), color: static::getNavigationBadgeColor())
                 ->badgeTooltip(static::getNavigationBadgeTooltip())
                 ->sort(static::getNavigationSort())
                 ->url(fn(): string => route("filament.default.resources.cadeaus.{listId}.index", ['listId' => $lijstId]));
-        }
-
-        return $items;
+        });
     }
 
     public static function getTitleCasePluralModelLabel(): string
@@ -335,6 +310,11 @@ class CadeauResource extends Resource
         $listId = static::getListId();
 
         return $listId !== null && (int) $listId === (int) auth()->id();
+    }
+
+    private static function context(): ParticipantListContext
+    {
+        return new ParticipantListContext('listId', 'listId');
     }
 
 }

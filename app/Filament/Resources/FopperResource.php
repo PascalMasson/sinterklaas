@@ -3,36 +3,26 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\FopperResource\Pages;
-use App\Models\Cadeau;
+use App\Media\MediaPreview;
 use App\Models\Fopper;
-use App\Models\User;
-use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Schema;
-use Filament\Navigation\NavigationItem;
-use Filament\Resources\Resource;
+use App\Navigation\ParticipantListContext;
+use BackedEnum;
 use Filament\Actions\Action;
-use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteAction;
-use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
-use Filament\Actions\RestoreBulkAction;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Filament\Forms\Components\Textarea;
+use Filament\Navigation\NavigationItem;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\Facades\Cache;
-use BackedEnum;
 
 class FopperResource extends Resource
 {
@@ -42,8 +32,6 @@ class FopperResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-face-smile';
 
-    protected static $cachedName = null;
-
     public static function form(Schema $schema): Schema
     {
         return $schema
@@ -52,8 +40,8 @@ class FopperResource extends Resource
                     ->rows(10)
                     ->required(),
 
-                SpatieMediaLibraryFileUpload::make("images")
-                    ->label("Afbeeldingen")
+                SpatieMediaLibraryFileUpload::make('images')
+                    ->label('Afbeeldingen')
                     ->reorderable()
                     ->responsiveImages()
                     ->multiple(),
@@ -68,33 +56,34 @@ class FopperResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $mediaPreview = new MediaPreview;
+
         return $table
             ->columns([
 
                 TextColumn::make('createdByUser.name')
-                    ->label("Aangemaakt door")
+                    ->label('Aangemaakt door')
                     ->sortable(),
 
                 TextColumn::make('inhoud')
                     ->wrap()
                     ->grow(),
 
-                SpatieMediaLibraryImageColumn::make("images")
-                    ->label("Afbeeldingen")
+                TextColumn::make('created_at')
+                    ->label('Toegevoegd op')
+                    ->date('d-m-Y')
+                    ->sortable(),
+
+                SpatieMediaLibraryImageColumn::make('images')
+                    ->label('Afbeeldingen')
                     ->action(
-                        Action::make("view-image")
-                            ->label("Bekijk afbeeldingen")
+                        Action::make('view-image')
+                            ->label('Bekijk afbeeldingen')
                             ->visible(fn (Fopper $record): bool => $record->hasMedia())
-                            ->modalContent(function (Fopper $record) {
-                                $images = [];
-                                foreach ($record->getMedia() as $media) {
-                                    $images[] = [
-                                        'imgSrc' => $media->getUrl(),
-                                        'imgAlt' => $media->name,
-                                        'isImage' => str_starts_with((string) $media->mime_type, 'image/'),
-                                    ];
-                                }
-                                return view('filament.pages.actions.view-images', ['images' => $images]);
+                            ->modalContent(function (Fopper $record) use ($mediaPreview) {
+                                return view('filament.pages.actions.view-images', [
+                                    'images' => $mediaPreview->from($record->getMedia()),
+                                ]);
                             })
                             ->modalSubmitAction(false)
                     ),
@@ -102,8 +91,8 @@ class FopperResource extends Resource
             ->filters([
             ])
             ->actions([
-                EditAction::make()->label("")->visible(fn(Fopper $record) => $record->created_by_user_id == auth()->id()),
-                DeleteAction::make()->label("")->visible(fn(Fopper $record) => $record->created_by_user_id == auth()->id()),
+                EditAction::make()->label('')->visible(fn (Fopper $record) => $record->created_by_user_id == auth()->id()),
+                DeleteAction::make()->label('')->visible(fn (Fopper $record) => $record->created_by_user_id == auth()->id()),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),
             ]);
@@ -120,62 +109,56 @@ class FopperResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where("created_for_user_id", static::getListId());
+        return parent::getEloquentQuery()->where('created_for_user_id', static::getListId());
     }
 
     public static function getNavigationItems(): array
     {
-        $lijstIds = Cache::remember("resource-list-id-nav-items", 3600, fn ()=> User::orderBy("name")->select('id', 'name')->pluck("name", "id")->toArray());
+        $context = static::context();
 
-        $currentUser = auth()->id();
-
-        $items = [];
-        foreach ($lijstIds as $lijstId => $name) {
-            if($lijstId == $currentUser){
-                continue;
-            }
-            $items[] = NavigationItem::make($name)
-                ->group("Foppers")
+        return $context->navigationItems(auth()->id(), function (int $lijstId, string $name) use ($context): NavigationItem {
+            return NavigationItem::make($name)
+                ->group('Foppers')
                 ->parentItem(static::getNavigationParentItem())
                 ->icon(static::getNavigationIcon())
                 ->activeIcon(static::getActiveNavigationIcon())
-                ->isActiveWhen(fn () => (request()->routeIs(static::getRouteBaseName() . '.*') && request()->route()->parameter('listId') == $lijstId))
+                ->isActiveWhen(fn () => $context->isCurrent(static::getRouteBaseName(), $lijstId))
                 ->badge(static::getNavigationBadge(), color: static::getNavigationBadgeColor())
                 ->badgeTooltip(static::getNavigationBadgeTooltip())
                 ->sort(static::getNavigationSort())
-                ->url(fn(): string => route("filament.default.resources.foppers.{targetId}.index", ['targetId' => $lijstId]));
-        }
-        return $items;
+                ->url(fn (): string => route('filament.default.resources.foppers.{targetId}.index', ['targetId' => $lijstId]));
+        });
     }
 
     public static function getUrl(?string $name = null, array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?Model $tenant = null, bool $shouldGuessMissingParameters = false, ?string $configuration = null): string
     {
-        if(!array_key_exists("targetId", $parameters)){
-            $parameters["targetId"] = static::getListId();
-        }
+        $parameters = static::context()->withCurrentId($parameters);
+
         return parent::getUrl($name, $parameters, $isAbsolute, $panel, $tenant, $shouldGuessMissingParameters, $configuration);
     }
 
     public static function getListId(): ?int
     {
-        return request()->route()->parameter('targetId') ?? session()->get('targetId') ?? null;
+        return static::context()->id();
     }
 
     protected static function getListName(): ?string
     {
-        if (is_null(static::$cachedName)) {
-            static::$cachedName = User::find(static::getListId())->name;
-        }
-        return static::$cachedName;
+        return static::context()->name();
     }
 
     public static function getTitleCasePluralModelLabel(): string
     {
-        return "Foppers voor " . static::getListName();
+        return 'Foppers voor '.static::getListName();
     }
 
     public static function canViewAny(): bool
     {
         return auth()->id() !== static::getListId();
+    }
+
+    private static function context(): ParticipantListContext
+    {
+        return new ParticipantListContext('targetId', 'targetId');
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Cadeaus;
 
+use App\Enums\CadeauStatus;
 use App\Enums\CadeauVisibility;
 use App\Models\Cadeau;
 use App\Models\User;
@@ -36,11 +37,43 @@ final class CadeauVisibilityPolicy
 
     public function canSee(Cadeau $cadeau, ?User $viewer): bool
     {
-        return $cadeau->visibility->isVisibleTo(
-            viewerId: $viewer?->getKey(),
-            recipientId: $cadeau->list_user_id,
-            creatorId: $cadeau->created_by_user_id,
-        );
+        $viewerId = $viewer === null ? null : (int) $viewer->getKey();
+
+        if ($viewerId === null) {
+            return $cadeau->visibility === CadeauVisibility::PUBLIC;
+        }
+
+        return match ($cadeau->visibility) {
+            CadeauVisibility::PUBLIC => true,
+            CadeauVisibility::HIDDEN => $viewerId !== (int) $cadeau->list_user_id,
+            CadeauVisibility::PRIVATE => $viewerId === (int) $cadeau->created_by_user_id,
+        };
+    }
+
+    public function applyCreationDefaults(Cadeau $cadeau, ?User $viewer): void
+    {
+        $viewerId = $viewer === null ? null : (int) $viewer->getKey();
+
+        if ($cadeau->status === null) {
+            $cadeau->status = CadeauStatus::AVAILABLE;
+        }
+
+        if ($cadeau->created_by_user_id === null && $viewerId !== null) {
+            $cadeau->created_by_user_id = $viewerId;
+        }
+
+        $addingToOwnList = $cadeau->list_user_id !== null
+            && $viewerId !== null
+            && (int) $cadeau->list_user_id === $viewerId;
+
+        if ($addingToOwnList) {
+            $cadeau->visibility = CadeauVisibility::PUBLIC;
+        } elseif ($cadeau->visibility === null) {
+            $cadeau->visibility = $this->defaultFor(
+                viewerId: $viewerId,
+                listId: $cadeau->list_user_id,
+            );
+        }
     }
 
     public function canView(Cadeau $cadeau, ?User $viewer): bool

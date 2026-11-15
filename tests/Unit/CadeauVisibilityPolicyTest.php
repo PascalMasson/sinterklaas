@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Domain\Cadeaus\CadeauVisibilityPolicy;
+use App\Enums\CadeauStatus;
 use App\Enums\CadeauVisibility;
 use App\Models\Cadeau;
 use App\Models\User;
@@ -16,7 +17,7 @@ class CadeauVisibilityPolicyTest extends TestCase
     {
         parent::setUp();
 
-        $this->policy = new CadeauVisibilityPolicy();
+        $this->policy = new CadeauVisibilityPolicy;
     }
 
     public function test_public_cadeau_is_visible_to_everyone(): void
@@ -78,9 +79,21 @@ class CadeauVisibilityPolicyTest extends TestCase
         self::assertFalse($this->policy->canConfigure(null, 20));
     }
 
+    public function test_creation_defaults_are_applied_by_the_visibility_policy(): void
+    {
+        $cadeau = new Cadeau;
+        $cadeau->list_user_id = 10;
+
+        $this->policy->applyCreationDefaults($cadeau, $this->user(20));
+
+        self::assertSame(CadeauStatus::AVAILABLE, $cadeau->status);
+        self::assertSame(20, $cadeau->created_by_user_id);
+        self::assertSame(CadeauVisibility::HIDDEN, $cadeau->visibility);
+    }
+
     private function cadeau(CadeauVisibility $visibility, int $listUserId, int $creatorId): Cadeau
     {
-        $cadeau = new Cadeau();
+        $cadeau = new Cadeau;
         $cadeau->visibility = $visibility;
         $cadeau->list_user_id = $listUserId;
         $cadeau->created_by_user_id = $creatorId;
@@ -90,7 +103,7 @@ class CadeauVisibilityPolicyTest extends TestCase
 
     private function user(int $id): User
     {
-        $user = new User();
+        $user = new User;
         $user->id = $id;
 
         return $user;

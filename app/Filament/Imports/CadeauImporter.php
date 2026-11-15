@@ -2,8 +2,7 @@
 
 namespace App\Filament\Imports;
 
-use App\Enums\CadeauStatus;
-use App\Enums\CadeauVisibility;
+use App\Domain\Cadeaus\CadeauImportNormalizer;
 use App\Models\Cadeau;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
@@ -19,38 +18,22 @@ class CadeauImporter extends Importer
             ImportColumn::make("title"),
             ImportColumn::make("description"),
             ImportColumn::make("status")
-                ->fillRecordUsing(function(Cadeau $record, string $state) {
-                    $record->status = match ($state) {
-                        'VRIJ' => CadeauStatus::AVAILABLE,
-                        'GERESERVEERD' => CadeauStatus::RESERVED,
-                        'GEKOCHT' => CadeauStatus::PURCHASED,
-                        default => throw new \Exception("Unknown status: $state")
-                    };
-                }),
+                ->fillRecordUsing(fn (): null => null),
             ImportColumn::make("price")
-                ->castStateUsing(fn ($state) => filled($state) ? str($state)->replace(',', '.')->toString() : null),
+                ->fillRecordUsing(fn (): null => null),
             ImportColumn::make("location")
-                ->fillRecordUsing(function (Cadeau $record, string $state) {
-                    if (filter_var($state, FILTER_VALIDATE_URL)) {
-                        $record->location_url = $state;
-                        $record->location_type = "website";
-                    } else {
-                        $record->location_other = $state;
-                        $record->location_type = "overig";
-                    }
-                }),
+                ->fillRecordUsing(fn (): null => null),
             ImportColumn::make('visibility')
-                ->fillRecordUsing(function (Cadeau $record, string $state) {
-                    $record->visibility = CadeauVisibility::fromLocalized($state);
-                }),
+                ->fillRecordUsing(fn (): null => null),
             ImportColumn::make("created_by_user_id"),
             ImportColumn::make("list_user_id"),
             ImportColumn::make("reserved_by_user_id"),
         ];
     }
 
-    public function beforeSave(){
-        \Debugbar::info(json_encode($this->data));
+    public function beforeSave(): void
+    {
+        $this->record?->forceFill((new CadeauImportNormalizer())->normalize($this->data));
     }
 
     public function resolveRecord(): ?Cadeau
