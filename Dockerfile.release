@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-ARG APP_BASE_IMAGE=serversideup/php:8.5-fpm-nginx-alpine
+ARG APP_BASE_IMAGE=serversideup/php:8.5-fpm-nginx-alpine-v5.2.1
 
 FROM node:22-alpine AS frontend
 WORKDIR /build

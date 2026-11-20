@@ -3,7 +3,7 @@
 # ==========================
 ARG PHP_VERSION=8.5
 
-FROM serversideup/php:${PHP_VERSION}-fpm-nginx-alpine AS base
+FROM serversideup/php:${PHP_VERSION}-fpm-nginx-alpine-v5.2.1 AS base
 
 # Re-declare ARGs inside the stage (required!)
 ARG USER_ID=1000
